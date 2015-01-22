@@ -1,3 +1,9 @@
+# AVRC files
+*.eep
+*.lst
+*.map
+*.d
+
 # Object files
 *.o
 *.ko
