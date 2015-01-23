@@ -10,7 +10,7 @@ MCU = attiny84
 F_CPU = 8000000
 TARGET = main
 AVRDUDE_PROGRAMMER = avrisp       
-AVRDUDE_PORT = /dev/ttyUSB1
+AVRDUDE_PORT = /dev/ttyUSB0
 
 ############# Don't need to change below here for most purposes  (Elliot)
 

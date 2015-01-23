@@ -9,8 +9,9 @@
 #include "SerialDebug.h"
 
 uint8_t j;
+int8_t calibration_offset = 0xF0;
 uint16_t max_batt = 34;
-uint16_t eeprom_used = 2;
+uint16_t eeprom_used = 3;
 uint32_t temperature;
 uint16_t sample[12];
 uint8_t used_slots = 0;
@@ -23,10 +24,10 @@ static FILE ser_stdout = FDEV_SETUP_STREAM(ser_printf, NULL, _FDEV_SETUP_WRITE);
 /***************************** MAIN ****************************/
 int main(void) {
 	//****SETUP****
-	eeprom_used+=eeprom_read_word((uint16_t*)0)+2;
+	eeprom_used+=eeprom_read_word((uint16_t*)0)+3;
 	if(eeprom_used%2){ // clear eeprom if value is not word aligned
 		eeprom_write_word((uint16_t*)0,0);
-		eeprom_used=2;
+		eeprom_used=3;
 	}// if
 	DDRA&=~((1<<SEL_PIN)|(1<<UP_PIN)|(1<<DOWN_PIN)); // INPUTS
 	ADMUX=(0x00);					// select ADC0; voltage reference to VCC
@@ -54,7 +55,7 @@ int main(void) {
 			} else if(crnt_menu==SAVE_WHERE){
 				/* SAVE SAMPLE */
 				for(j=0;j<12;j++){
-					eeprom_write_word((uint16_t*)((crnt_slot*24)+(j*2)+2),sample[j]);
+					eeprom_write_word((uint16_t*)((crnt_slot*24)+(j*2)+3),sample[j]);
 				}// for
 				eeprom_used+=24;
 				eeprom_write_word((uint16_t*)0,eeprom_used-2); // minus 2 because of the 2 bytes to store 'eeprom_used' value
@@ -89,7 +90,11 @@ return 0;
 }
 
 uint32_t adc2f(uint16_t adc){
-	return ((((unsigned long)slope[adc>>5]*(unsigned long)adc)>>11)+(unsigned long)y_int[adc>>5]);
+	/* READ VALUES FROM LOOKUP TABLE */
+	uint32_t seg_slope = pgm_read_word(&slope[adc>>5]);
+	uint32_t seg_y_int = pgm_read_word(&y_int[adc>>5]);
+	/* COMPUTER THE TEMPERATURE */
+	return (((seg_slope*(uint32_t)adc)>>11)+seg_y_int);
 }// adc2f(uint16_t adc)
 
 void mode_handler(){
@@ -110,13 +115,13 @@ void mode_handler(){
 			lcd_goto(0x00);
 			sample[j] = ADC;
 			temperature = adc2f(sample[j]);
-			printf("%u.%0.2u%cF",(uint16_t)(temperature>>4),dp((uint8_t)(temperature&0xF))/100,223);
+			printf("%u.%0.2u%cF",(uint16_t)(temperature>>4),dp((uint8_t)(temperature&0xF))/100,DEGREE_SYMBOL);
 			lcd_goto(0x40);
 			lcd_puts_P(&probe_instruction[j]);
 			break;
 		case MEM_STAT_MODE:
 			lcd_goto(0x00);
-			printf("%u of 512 bytes", eeprom_read_word((uint16_t*)0)+2);
+			printf("%u of 512 bytes", eeprom_read_word((uint16_t*)0)+3);
 			break;
 		case RECALL_MODE:
 			switch(selector.loc){
@@ -173,7 +178,7 @@ void mode_handler(){
 			printf("%S",&csv_header);
 			for(i=0;i<used_slots;i++){
 				/* READ FROM EEPROM */
-				eeprom_read_block((void*)&sample, (const void*)(i*24)+2, 24);
+				eeprom_read_block((void*)&sample, (const void*)(i*24)+3, 24);
 				printf("%c%c,",'\n',i+65);
 				lcd_goto(0x00+i);
 				lcd_putc(65+i);
@@ -203,6 +208,16 @@ void mode_handler(){
 			temperature = adc2f((uint16_t)ADC);
 			printf("%u.%0.2u%cF",(uint16_t)(temperature>>4),dp((uint8_t)(temperature&0xF))/100,223);
 			break;
+		case CALIBRATE_MENU:
+			ADCSRA|=(1<<ADSC);			// start ADC conversion
+			while(ADCSRA&(1<<ADSC));	// wait for ADC to complete measurement
+			
+			lcd_goto(0x00);
+			lcd_puts("          ");	// clear the temp
+			lcd_goto(0x00);
+			temperature = adc2f((uint16_t)ADC);
+			printf("%u.%0.2u%cF",(uint16_t)(temperature>>4),dp((uint8_t)(temperature&0xF))/100,223);
+			break;
 		default:
 			break;
 	}// switch
@@ -221,7 +236,7 @@ void change_menu(){
 			j=0;	// reset the sample index
 			selector.loc=0;
 			selector.min=0;
-			selector.max=2;
+			selector.max=3;
 			selector.visable=1;
 			break;
 		case SAVE_MENU:
@@ -261,7 +276,7 @@ void change_menu(){
 			selector.visable=1;
 			break;
 		case RECALL_MODE:
-			eeprom_read_block((void*)&sample, (const void*)(crnt_slot*24)+2, 24); // read entire sample into ram
+			eeprom_read_block((void*)&sample, (const void*)(crnt_slot*24)+3, 24); // read entire sample into ram
 			selector.loc=0;
 			selector.min=0;
 			selector.max=3;
@@ -294,6 +309,12 @@ void change_menu(){
 			selector.loc=1;
 			selector.min=1;
 			selector.max=1;
+			selector.visable=1;
+			break;
+		case CALIBRATE_MENU:
+			selector.loc=2;
+			selector.min=2;
+			selector.max=2;
 			selector.visable=1;
 			break;
 		default:

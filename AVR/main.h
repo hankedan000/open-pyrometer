@@ -19,7 +19,7 @@
 #define READ_UP		!!(PINA&=(1<<UP_PIN))
 #define READ_DOWN	!!(PINA&=(1<<DOWN_PIN))
 
-#define MENU_CNT		10
+#define MENU_CNT		11
 #define MAIN_MENU		0
 #define RECORD_MENU		4
 #define SAVE_MENU		8
@@ -30,6 +30,7 @@
 #define MEM_STAT_MODE	28
 #define RECALL_MODE		32
 #define INSTANT_MODE	36
+#define CALIBRATE_MENU	40
 
 #define SAVE_WHERE		51
 #define LOAD_WHERE		52
@@ -49,9 +50,11 @@
 #define PRC				10
 #define PRO				11
 
-const char menu[MENU_CNT*4][9] PROGMEM = {
+#define DEGREE_SYMBOL	223
+
+const char menu[MENU_CNT*4][10] PROGMEM = {
 	"RECORD",	"RECALL",	"SETTINGS",	"",				// MAIN MENU
-	"FULL SET",	"INSTANT",	"BACK",		"",				// READ MENU
+	"FULL SET",	"INSTANT",	"CALIBRATE","BACK",			// READ MENU
 	"SAVE?",	"",			"YES",		"NO",			// SAVE MENU
 	"BATTERY",	"MEMORY",	"BACK",		"",				// SETTINGS MENU
 	"",			"BACK",		"",			"",				// BATTERY MENU
@@ -59,11 +62,12 @@ const char menu[MENU_CNT*4][9] PROGMEM = {
 	"USAGE",	"ERASE",	"SEND CSV",	"BACK",			// MEMORY MENU
 	"",			"BACK",		"",			"",				// MEMORY STATUS MENU
 	"",			"",			"",			"",				// RECALL MODE
-	"",			"BACK",		"",			""				// INSTANT MODE
+	"",			"BACK",		"",			"",				// INSTANT MODE
+	"",			"",			"DONE"		""				// CALIBRATE MENU
 };
 const uint8_t menu_jump_table[MENU_CNT*4] PROGMEM = {
 	RECORD_MENU,	LOAD_WHERE,		SETTINGS_MENU,	MAIN_MENU,		// MAIN MENU
-	SINGLE_MENU,	INSTANT_MODE,	MAIN_MENU,		MAIN_MENU,		// READ MENU
+	SINGLE_MENU,	INSTANT_MODE,	CALIBRATE_MENU,	MAIN_MENU,		// READ MENU
 	MAIN_MENU,		MAIN_MENU,		SAVE_WHERE,		RECORD_MENU,	// SAVE MENU
 	BATTERY_MENU,	MEMORY_MENU,	MAIN_MENU,		MAIN_MENU,		// SETTINGS MENU
 	MAIN_MENU,		SETTINGS_MENU,	MAIN_MENU,		MAIN_MENU,		// BATTERY MENU
@@ -71,7 +75,8 @@ const uint8_t menu_jump_table[MENU_CNT*4] PROGMEM = {
 	MEM_STAT_MODE,	MEM_CLR_MODE,	TX_DATA_MODE,	SETTINGS_MENU,	// MEMORY MENU
 	MAIN_MENU,		MEMORY_MENU,	MAIN_MENU,		MAIN_MENU,		// MEMORY STATUS MENU
 	MAIN_MENU,		MAIN_MENU,		MAIN_MENU,		MAIN_MENU,		// RECALL MODE
-	MAIN_MENU,		RECORD_MENU,	MAIN_MENU,		MAIN_MENU		// INSTANT MODE
+	MAIN_MENU,		RECORD_MENU,	MAIN_MENU,		MAIN_MENU,		// INSTANT MODE
+	MAIN_MENU,		MAIN_MENU,		RECORD_MENU,	MAIN_MENU		// CALIBRATE MENU
 };
 const uint8_t menu_offset[4] = {0x01,0x41,0x0B,0x4B};
 const char probe_instruction[12][10] PROGMEM = {
